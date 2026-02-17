@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User";
+import generateToken from "../utils/generateToken";
 
 const router = express.Router();
 
@@ -75,6 +76,7 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
       },
+      token: generateToken(user._id.toString()),
     });
 
   } catch (error) {
