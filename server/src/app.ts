@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("RIDEEXCHANGE Backend Running!");
+  res.send("API is running 🚀");
 });
 
 export default app;
