@@ -1,21 +1,18 @@
 import express from "express";
 import User from "../models/User";
+import { protect } from "../middleware/authMiddleware"; // ✅ ADD
 
 const router = express.Router();
 
-// Create user
-router.post("/", async (req, res) => {
-  try {
-    const user = await User.create(req.body);
-    res.status(201).json(user);
-  } catch (error) {
-    res.status(400).json({ error });
-  }
+// ✅ Get logged-in user profile
+router.get("/profile", protect, async (req: any, res) => {
+  res.json(req.user);
 });
 
-// Get users
-router.get("/", async (req, res) => {
-  const users = await User.find();
+
+// ✅ (Optional) Admin-only route later
+router.get("/", protect, async (req, res) => {
+  const users = await User.find().select("-password");
   res.json(users);
 });
 
