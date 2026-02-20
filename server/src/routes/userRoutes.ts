@@ -1,6 +1,6 @@
 import express from "express";
 import User from "../models/User";
-import { protect } from "../middleware/authMiddleware"; // ✅ ADD
+import { protect } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
