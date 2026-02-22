@@ -42,4 +42,21 @@ router.get("/", async (req, res) => {
   }
 });
 
+// ✅ GET SINGLE LISTING
+router.get("/:id", async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id)
+      .populate("user", "name email");
+
+    if (!listing) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    res.json(listing);
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
