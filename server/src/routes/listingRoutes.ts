@@ -86,4 +86,27 @@ router.put("/:id", protect, async (req: any, res) => {
   }
 });
 
+// ✅ DELETE LISTING (Protected + Owner)
+router.delete("/:id", protect, async (req: any, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // 🔥 Ownership check
+    if (listing.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    await listing.deleteOne();
+
+    res.json({ message: "Listing removed" });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
