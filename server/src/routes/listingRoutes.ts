@@ -112,11 +112,20 @@ router.delete("/:id", protect, async (req: any, res) => {
 
 
 // Upload image
-router.post("/upload", protect, upload.single("image"), (req, res) => {
-  res.json({
-    message: "Image uploaded",
-    image: `/uploads/${req.file?.filename}`,
-  });
-});
+router.post(
+  "/upload",
+  protect,
+  upload.array("images", 5), // max 5
+  (req: any, res) => {
+    const files = req.files as Express.Multer.File[];
+
+    const imagePaths = files.map(file => `/uploads/${file.filename}`);
+
+    res.json({
+      message: "Images uploaded",
+      images: imagePaths,
+    });
+  }
+);
 
 export default router;
