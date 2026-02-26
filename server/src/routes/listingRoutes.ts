@@ -1,6 +1,7 @@
 import express from "express";
 import Listing from "../models/Listing";
 import { protect } from "../middleware/authMiddleware";
+import upload from "../middleware/uploadMiddleware";
 
 const router = express.Router();
 
@@ -107,6 +108,15 @@ router.delete("/:id", protect, async (req: any, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
+});
+
+
+// Upload image
+router.post("/upload", protect, upload.single("image"), (req, res) => {
+  res.json({
+    message: "Image uploaded",
+    image: `/uploads/${req.file?.filename}`,
+  });
 });
 
 export default router;
