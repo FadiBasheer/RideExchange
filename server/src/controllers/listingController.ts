@@ -28,11 +28,45 @@ export const createListing = async (req: any, res: Response) => {
 
 
 // GET ALL
-export const getListings = async (req: Request, res: Response) => {
+export const getListings = async (req: any, res: Response) => {
   try {
-    const listings = await Listing.find().populate("user", "name email");
+    const { search, location, minPrice, maxPrice } = req.query;
+
+    const query: any = {};
+
+    // 🔎 Search in title or description
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // 📍 Filter by location
+    if (location) {
+      query.location = { $regex: location, $options: "i" };
+    }
+
+    // 💰 Price filters
+    if (minPrice || maxPrice) {
+      query.price = {};
+
+      if (minPrice) {
+        query.price.$gte = Number(minPrice);
+      }
+
+      if (maxPrice) {
+        query.price.$lte = Number(maxPrice);
+      }
+    }
+
+    const listings = await Listing.find(query)
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
     res.json(listings);
-  } catch {
+
+  } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
