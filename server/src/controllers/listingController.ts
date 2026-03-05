@@ -28,13 +28,13 @@ export const createListing = async (req: any, res: Response) => {
 
 
 // GET ALL
-export const getListings = async (req: any, res: Response) => {
+export const getListings = async (req: Request, res: Response) => {
   try {
-    const { search, location, minPrice, maxPrice } = req.query;
+    const { search, location, minPrice, maxPrice, page = "1", limit = "10" } = req.query;
 
     const query: any = {};
 
-    // 🔎 Search in title or description
+    // 🔎 Search
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -42,29 +42,38 @@ export const getListings = async (req: any, res: Response) => {
       ];
     }
 
-    // 📍 Filter by location
+    // 📍 Location filter
     if (location) {
       query.location = { $regex: location, $options: "i" };
     }
 
-    // 💰 Price filters
+    // 💰 Price filter
     if (minPrice || maxPrice) {
       query.price = {};
 
-      if (minPrice) {
-        query.price.$gte = Number(minPrice);
-      }
-
-      if (maxPrice) {
-        query.price.$lte = Number(maxPrice);
-      }
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
     }
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    const skip = (pageNumber - 1) * limitNumber;
 
     const listings = await Listing.find(query)
       .populate("user", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber);
 
-    res.json(listings);
+    const total = await Listing.countDocuments(query);
+
+    res.json({
+      page: pageNumber,
+      totalPages: Math.ceil(total / limitNumber),
+      totalListings: total,
+      listings
+    });
 
   } catch (error) {
     res.status(500).json({ message: "Server error" });
