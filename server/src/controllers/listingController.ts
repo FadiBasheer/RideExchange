@@ -160,3 +160,32 @@ export const uploadImages = (req: any, res: Response) => {
     images: imagePaths
   });
 };
+
+
+// Search listing
+export const searchListings = async (req: Request, res: Response) => {
+
+  const {
+    make,
+    model,
+    year,
+    minPrice,
+    maxPrice,
+  } = req.query;
+
+  const filter: any = {};
+
+  if (make) filter.make = make;
+  if (model) filter.model = model;
+  if (year) filter.year = year;
+
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  const listings = await Listing.find(filter);
+
+  res.json(listings);
+};
