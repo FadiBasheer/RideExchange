@@ -1,23 +1,17 @@
 import { Request, Response } from "express";
-import Listing from "../models/CarListing";
+import CarListing from "../models/CarListing";
 
-// CREATE
+
+// CREATE LISTING
 export const createListing = async (req: any, res: Response) => {
   try {
-    const { title, price, description, location, images } = req.body;
 
-    if (!title || !price || !description || !location) {
-      return res.status(400).json({ message: "Please fill all required fields" });
-    }
+    const listingData = {
+      ...req.body,
+      seller: req.user._id
+    };
 
-    const listing = await Listing.create({
-      title,
-      price,
-      description,
-      location,
-      images,
-      user: req.user._id,
-    });
+    const listing = await CarListing.create(listingData);
 
     res.status(201).json(listing);
 
@@ -27,14 +21,15 @@ export const createListing = async (req: any, res: Response) => {
 };
 
 
-// GET ALL
+// GET ALL LISTINGS
 export const getListings = async (req: Request, res: Response) => {
   try {
-    const { search, location, minPrice, maxPrice, page = "1", limit = "10" } = req.query;
 
-    const query: any = {};
+    const { search, location, page = "1", limit = "10" } = req.query;
 
-    // 🔎 Search
+    const query: any = { status: "active" };
+
+    // search title / description
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -42,17 +37,9 @@ export const getListings = async (req: Request, res: Response) => {
       ];
     }
 
-    // 📍 Location filter
+    // location
     if (location) {
       query.location = { $regex: location, $options: "i" };
-    }
-
-    // 💰 Price filter
-    if (minPrice || maxPrice) {
-      query.price = {};
-
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
     }
 
     const pageNumber = Number(page);
@@ -60,13 +47,13 @@ export const getListings = async (req: Request, res: Response) => {
 
     const skip = (pageNumber - 1) * limitNumber;
 
-    const listings = await Listing.find(query)
-      .populate("user", "name email")
+    const listings = await CarListing.find(query)
+      .populate("seller", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNumber);
 
-    const total = await Listing.countDocuments(query);
+    const total = await CarListing.countDocuments(query);
 
     res.json({
       page: pageNumber,
@@ -75,17 +62,18 @@ export const getListings = async (req: Request, res: Response) => {
       listings
     });
 
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 };
 
 
-// GET SINGLE
+// GET SINGLE LISTING
 export const getListingById = async (req: Request, res: Response) => {
   try {
-    const listing = await Listing.findById(req.params.id)
-      .populate("user", "name email");
+
+    const listing = await CarListing.findById(req.params.id)
+      .populate("seller", "name email");
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
@@ -102,17 +90,18 @@ export const getListingById = async (req: Request, res: Response) => {
 // UPDATE
 export const updateListing = async (req: any, res: Response) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+
+    const listing = await CarListing.findById(req.params.id);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
 
-    if (listing.user.toString() !== req.user._id.toString()) {
+    if (listing.seller.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: "Not authorized" });
     }
 
-    const updated = await Listing.findByIdAndUpdate(
+    const updated = await CarListing.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
@@ -129,13 +118,14 @@ export const updateListing = async (req: any, res: Response) => {
 // DELETE
 export const deleteListing = async (req: any, res: Response) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+
+    const listing = await CarListing.findById(req.params.id);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
 
-    if (listing.user.toString() !== req.user._id.toString()) {
+    if (listing.seller.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: "Not authorized" });
     }
 
@@ -149,8 +139,9 @@ export const deleteListing = async (req: any, res: Response) => {
 };
 
 
-// UPLOAD IMAGES
+// IMAGE UPLOAD
 export const uploadImages = (req: any, res: Response) => {
+
   const files = req.files as Express.Multer.File[];
 
   const imagePaths = files.map(file => `/uploads/${file.filename}`);
@@ -162,30 +153,48 @@ export const uploadImages = (req: any, res: Response) => {
 };
 
 
-// Search listing
+// ADVANCED CAR SEARCH
 export const searchListings = async (req: Request, res: Response) => {
 
-  const {
-    make,
-    model,
-    year,
-    minPrice,
-    maxPrice,
-  } = req.query;
+  try {
 
-  const filter: any = {};
+    const { make, model, year, minPrice, maxPrice } = req.query;
 
-  if (make) filter.make = make;
-  if (model) filter.model = model;
-  if (year) filter.year = year;
+    const filter: any = {
+      status: "active"
+    };
 
-  if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) filter.price.$gte = Number(minPrice);
-    if (maxPrice) filter.price.$lte = Number(maxPrice);
+    if (make) filter["car.make"] = make;
+    if (model) filter["car.model"] = model;
+    if (year) filter["car.year"] = Number(year);
+
+    // price filter must check BOTH listing types
+    if (minPrice || maxPrice) {
+
+      filter.$or = [
+        {
+          "auction.currentBid": {
+            ...(minPrice && { $gte: Number(minPrice) }),
+            ...(maxPrice && { $lte: Number(maxPrice) })
+          }
+        },
+        {
+          "priceDrop.currentPrice": {
+            ...(minPrice && { $gte: Number(minPrice) }),
+            ...(maxPrice && { $lte: Number(maxPrice) })
+          }
+        }
+      ];
+    }
+
+    const listings = await CarListing.find(filter)
+      .populate("seller", "name");
+
+    res.json(listings);
+
+  } catch {
+
+    res.status(500).json({ message: "Server error" });
+
   }
-
-  const listings = await Listing.find(filter);
-
-  res.json(listings);
 };
