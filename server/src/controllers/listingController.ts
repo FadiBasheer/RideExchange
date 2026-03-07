@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import Listing from "../models/Listing";
+import Listing from "../models/CarListing";
 
 // CREATE
 export const createListing = async (req: any, res: Response) => {
