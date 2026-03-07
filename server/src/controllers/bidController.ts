@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Bid from "../models/Bid";
-import Listing from "../models/Listing";
+import Listing from "../models/CarListing";
 
 export const createBid = async (req: any, res: Response) => {
   try {

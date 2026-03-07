@@ -17,17 +17,41 @@ const carListingSchema = new mongoose.Schema(
     required: true
   },
 
-  car: {
-    make: String,
-    model: String,
-    year: Number,
-    mileage: Number,
-    fuelType: String,
-    transmission: String,
-    condition: String
+  location: String,
+
+  status: {
+    type: String,
+    enum: ["active", "sold", "expired"],
+    default: "active"
   },
 
-  location: String,
+  car: {
+    make: {
+      type: String,
+      index: true
+    },
+
+    model: {
+      type: String,
+      index: true
+    },
+
+    year: {
+      type: Number,
+      index: true
+    },
+
+    mileage: Number,
+
+    fuelType: String,
+
+    transmission: String,
+
+    condition: {
+      type: String,
+      enum: ["new", "like_new", "good", "fair"]
+    }
+  },
 
   listingType: {
     type: String,
@@ -35,19 +59,28 @@ const carListingSchema = new mongoose.Schema(
     required: true
   },
 
-  // Auction fields
+  // AUCTION SYSTEM
   auction: {
     startingPrice: Number,
-    currentBid: Number,
+
+    currentBid: {
+      type: Number,
+      default: 0
+    },
+
     endDate: Date
   },
 
-  // Price drop fields
+  // DUTCH AUCTION SYSTEM
   priceDrop: {
     startPrice: Number,
+
     currentPrice: Number,
+
     dropAmount: Number,
+
     dropIntervalDays: Number,
+
     lastDropDate: Date
   }
 
