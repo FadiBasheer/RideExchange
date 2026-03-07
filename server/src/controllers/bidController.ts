@@ -22,16 +22,21 @@ export const createBid = async (req: any, res: Response) => {
       return res.status(400).json({ message: "Auction data missing" });
     }
 
-    if (new Date() > new Date(listing.auction.endDate)) {
-      return res.status(400).json({ message: "Auction ended" });
-    }
-
     const highestBid = await Bid.findOne({ listing: listingId }).sort("-amount");
 
+    if (!listing.auction.endDate) {
+      return res.status(400).json({ message: "Auction end date missing" });
+    }
+    
+    if (new Date() > listing.auction.endDate) {
+      return res.status(400).json({ message: "Auction has ended" });
+    }
+
     const currentPrice =
-      highestBid?.amount ||
-      listing.auction.currentBid ||
-      listing.auction.startingPrice;
+      highestBid?.amount ??
+      listing.auction.currentBid ??
+      listing.auction.startingPrice ??
+      0;
 
     if (amount <= currentPrice) {
       return res.status(400).json({
