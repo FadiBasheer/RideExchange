@@ -1,42 +1,41 @@
 import mongoose from "mongoose";
 
 const listingSchema = new mongoose.Schema(
-  {
-    title: {
-      type: String,
-      required: true,
-    },
+{
+  title: String,
+  description: String,
+  images: [String],
 
-    price: {
-      type: Number,
-      required: true,
-    },
+  make: String,
+  model: String,
+  year: Number,
+  mileage: Number,
 
-    description: {
-      type: String,
-      required: true,
-    },
+  location: String,
 
-    location: {
-      type: String,
-      required: true,
-    },
-
-    images: [
-      {
-        type: String,
-      },
-    ],
-
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+  listingType: {
+    type: String,
+    enum: ["auction", "price_drop"],
+    required: true
   },
-  { timestamps: true }
+
+  // Auction fields
+  startingPrice: Number,
+  currentBid: Number,
+  auctionEndDate: Date,
+
+  // Price drop fields
+  startPrice: Number,
+  priceDropAmount: Number,
+  dropIntervalDays: Number,
+  currentPrice: Number,
+
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }
+},
+{ timestamps: true }
 );
 
-const Listing = mongoose.model("Listing", listingSchema);
-
-export default Listing;
+export default mongoose.model("Listing", listingSchema);
