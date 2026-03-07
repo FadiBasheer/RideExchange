@@ -7,7 +7,6 @@ import bidRoutes from "./routes/bidRoutes";
 import { startPriceDropJob } from "./services/priceDropService";
 
 
-
 connectDB();
 
 const PORT = process.env.PORT || 5000;

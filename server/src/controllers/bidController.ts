@@ -1,43 +1,74 @@
 import { Request, Response } from "express";
 import Bid from "../models/Bid";
-import Listing from "../models/CarListing";
+import CarListing from "../models/CarListing";
+
 
 export const createBid = async (req: any, res: Response) => {
   try {
+
     const { listingId, amount } = req.body;
 
-    const listing = await Listing.findById(listingId);
+    const listing = await CarListing.findById(listingId);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
 
-    if (listing.saleType !== "auction") {
+    if (listing.listingType !== "auction") {
       return res.status(400).json({ message: "Not an auction listing" });
     }
 
-    if (new Date() > listing.auctionEndTime) {
+    if (!listing.auction) {
+      return res.status(400).json({ message: "Auction data missing" });
+    }
+
+    if (new Date() > new Date(listing.auction.endDate)) {
       return res.status(400).json({ message: "Auction ended" });
     }
 
-    const highestBid = await Bid.findOne({ listing: listingId })
-      .sort("-amount");
+    const highestBid = await Bid.findOne({ listing: listingId }).sort("-amount");
 
-    if (highestBid && amount <= highestBid.amount) {
+    const currentPrice =
+      highestBid?.amount ||
+      listing.auction.currentBid ||
+      listing.auction.startingPrice;
+
+    if (amount <= currentPrice) {
       return res.status(400).json({
-        message: "Bid must be higher than current highest bid",
+        message: `Bid must be higher than ${currentPrice}`
       });
     }
 
     const bid = await Bid.create({
       listing: listingId,
       user: req.user._id,
-      amount,
+      amount
     });
+
+    listing.auction.currentBid = amount;
+    await listing.save();
 
     res.status(201).json(bid);
 
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+export const getBidsForListing = async (req: Request, res: Response) => {
+  try {
+
+    const bids = await Bid.find({ listing: req.params.id })
+      .populate("user", "name")
+      .sort({ amount: -1 });
+
+    res.json(bids);
+
+  } catch {
+
+    res.status(500).json({ message: "Server error" });
+
   }
 };
